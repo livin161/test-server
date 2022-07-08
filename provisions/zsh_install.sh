@@ -11,10 +11,9 @@ cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
 
 nano ~/.zshrc
 
+# После установки попадаем в файл конфигурации и ставим это
 # ZSH_THEME="agnoster"
+#Устанавлвиваем шрифты и ставим их на оригинальный комп (не на тачку) и в шрифтах консоли ставим их (либо из списка)
+# wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
 #fc-cache -f -v
 
-#wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
-#wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
-# wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
-#wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
