@@ -7,11 +7,14 @@
 # you're doing.
 Vagrant.configure("2") do |config|
   config.vm.hostname = "dev-test.ru"
-  config.vm.box = "ubuntu/bionic64"
+  config.vm.box = "ubuntu/focal64"
 
   config.vm.network "forwarded_port", guest: 80, host: 8083
   config.vm.network "forwarded_port", guest: 90, host: 9090
+  config.vm.network "forwarded_port", guest: 100, host: 9100
   config.vm.network "forwarded_port", guest: 27017, host: 28017
+  config.vm.network "forwarded_port", guest: 443, host: 8443
+
   config.vm.network "private_network", ip: "192.168.10.10"
 
   config.vm.synced_folder ".", "/home/testCar/projects"

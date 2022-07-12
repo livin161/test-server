@@ -30,74 +30,103 @@ function installNginx() {
     sudo apt update
     sudo apt install nginx
 
-echo "
-  user www-data;
-  worker_processes auto;
-  pid /run/nginx.pid;
-  include /etc/nginx/modules-enabled/*.conf;
+    sudo chmod 777 /etc/nginx/*
 
-  events {
-  	worker_connections 1024;
-  	# multi_accept on;
-  }
 
-  http {
-  	##
-  	# Basic Settings
-  	##
+echo "user vagrant;
+worker_processes 2;
+timer_resolution 100ms;
+worker_rlimit_nofile 131072;
+worker_priority -5;
+pid /run/nginx.pid;
+events {
+    worker_connections 16384;
+    multi_accept on;
+    use epoll;
+}
+http {
+    ##
+    # Basic Settings
+    ##
 
-  	sendfile on;
-  	tcp_nopush on;
-  	tcp_nodelay on;
-  	keepalive_timeout 65;
-  	types_hash_max_size 2048;
-  	# server_tokens off;
+    sendfile on;
+    disable_symlinks off;
+    tcp_nopush on;
+    tcp_nodelay on;
+    types_hash_max_size 2048;
+    server_tokens off;
+    expires off;
 
-  	client_max_body_size 5M;
+    client_max_body_size 32M;
+    client_body_buffer_size 10K;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 4 8k;
 
-  	# server_names_hash_bucket_size 64;
-  	# server_name_in_redirect off;
+    client_body_timeout 12;
+    client_header_timeout 12;
+    keepalive_timeout 40;
+    keepalive_requests 100;
+    send_timeout 20;
+    reset_timedout_connection on;
 
-  	include /etc/nginx/mime.types;
-  	default_type application/octet-stream;
+    # server_names_hash_bucket_size 64;
+    # server_name_in_redirect off;
 
-  	##
-  	# SSL Settings
-  	##
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
 
-  	ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
-  	ssl_prefer_server_ciphers on;
+    ##
+    # Logging Settings
+    ##
 
-  	##
-  	# Logging Settings
-  	##
+    #access_log /var/log/nginx/access.log;
+    #error_log /var/log/nginx/error.log;
+    access_log off;
 
-  	access_log /var/log/nginx/access.log;
-  	error_log /var/log/nginx/error.log;
+    # Caches information about open FDs, freqently accessed files.
+    open_file_cache max=200000 inactive=20s;
+    open_file_cache_valid 30s;
+    open_file_cache_min_uses 2;
+    open_file_cache_errors on;
 
-  	##
-  	# Gzip Settings
-  	##
+    ##
+    # Gzip Settings
+    ##
+    gzip on;
+    gzip_proxied any;
+    gzip_comp_level 3;
+    gzip_static on;
+    gzip_types
+    text/css
+    text/plain
+    text/json
+    text/x-js
+    text/javascript
+    text/xml
+    application/json
+    application/x-javascript
+    application/xml
+    application/xml+rss
+    application/javascript
+    application/x-font-ttf
+    application/x-font-opentype
+    application/vnd.ms-fontobject
+    image/svg+xml
+    image/x-icon
+    application/atom_xml;
+    gzip_min_length 1024;
+    gzip_disable \"msie6\";
+    gzip_vary on;
 
-  	gzip on;
+    ##
+    # Virtual Host Configs
+    ##
 
-  	# gzip_vary on;
-  	# gzip_proxied any;
-  	# gzip_comp_level 6;
-  	# gzip_buffers 16 8k;
-  	# gzip_http_version 1.1;
-  	# gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}" | sudo tee /etc/nginx/nginx.conf
 
-  	##
-  	# Virtual Host Configs
-  	##
-
-  	include /etc/nginx/conf.d/*.conf;
-  	include /etc/nginx/sites-enabled/*;
-  }
-" > /etc/nginx/nginx.conf
-
-    echo "
+read -d '' NGINX_SITE <<EOF
 server {
      	listen 80 default_server;
      	listen [::]:80 default_server;
@@ -115,43 +144,44 @@ server {
           try_files \$uri \$uri/ =404;
       }
 
-# Работаем через TCP/IP, потому что UNIX не хочет находить файлы
+      # Работаем через TCP/IP, потому что UNIX не хочет находить файлы
       location ~ \.php$ {
         fastcgi_pass 127.0.0.1:9000;
         fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
         include /etc/nginx/fastcgi_params;
       }
 }
-          " > /etc/nginx/sites-enabled/default
+EOF
 
-echo "
+# Create site & enable it
+echo "${NGINX_SITE}" > /etc/nginx/sites-available/default
+
+read -d '' NGINX_SITE <<EOF
 server {
 	listen 90 default_server;
 	listen [::]:90 default_server;
 
 	add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Credentials' 'true' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
+  add_header 'Access-Control-Allow-Credentials' 'true' always;
+  add_header 'Access-Control-Allow-Methods' 'GET, POST' always;
+  add_header 'Access-Control-Allow-Headers' 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
 
 	root /usr/share/phpmyadmin/;
 
 	server_name dev-phpmyadmin.ru;
 
 	access_log  /var/log/nginx/phpmy-access.log; #расположение логов данного хоста
-        error_log   /var/log/nginx/phpmy-error.log;
+  error_log   /var/log/nginx/phpmy-error.log;
 
 	index index.php index.html index.htm index.nginx-debian.html;
 
 	location /phpmyadmin {
 		location ~ \.php$ {
-			add_header "Access-Control-Allow-Origin"  *;
-
 			fastcgi_pass 127.0.0.1:9000;
 			fastcgi_index index.php;
-			fastcgi_param SCRIPT_FILENAME $request_filename;
-			include fastcgi_params;
+			fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+			include /etc/nginx/fastcgi_params;
 			fastcgi_ignore_client_abort off;
 		}
 	}
@@ -159,53 +189,15 @@ server {
 	location ~ \.php {
 		fastcgi_pass 127.0.0.1:9000;
 		fastcgi_index index.php;
-		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+		include /etc/nginx/fastcgi_params;
 	}
 }
-" > /etc/nginx/sites-available/phpmyadmin.conf
+EOF
 
-echo "
-server {
-	listen 90 default_server;
-	listen [::]:90 default_server;
+echo "${NGINX_SITE}" > /etc/nginx/sites-available/phpmyadmin
 
-	add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Credentials' 'true' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
-
-	root /usr/share/phpmyadmin/;
-
-	server_name dev-phpmyadmin.ru;
-
-	access_log  /var/log/nginx/phpmy-access.log; #расположение логов данного хоста
-        error_log   /var/log/nginx/phpmy-error.log;
-
-	index index.php index.html index.htm index.nginx-debian.html;
-
-	location /phpmyadmin {
-		location ~ \.php$ {
-			add_header "Access-Control-Allow-Origin"  *;
-
-			fastcgi_pass 127.0.0.1:9000;
-			fastcgi_index index.php;
-			fastcgi_param SCRIPT_FILENAME $request_filename;
-			include fastcgi_params;
-			fastcgi_ignore_client_abort off;
-		}
-	}
-
-	location ~ \.php {
-		fastcgi_pass 127.0.0.1:9000;
-		fastcgi_index index.php;
-		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-		include fastcgi_params;
-	}
-}
-" > /etc/nginx/sites-available/phpmyadmin.conf
-
-echo "
+read -d '' NGINX_SITE <<EOF
 server {
 	listen 100 default_server;
 	listen [::]:100 default_server;
@@ -216,21 +208,26 @@ server {
 
 	index index.php;
 
-        client_max_body_size 5M;
+  client_max_body_size 5M;
 
-        access_log  /var/log/nginx/access-vanila-site.log;
+  access_log  /var/log/nginx/access-vanila-site.log;
 	error_log   /var/log/nginx/error-vanila-site.log;
 
 	error_page  405 =200 $uri;
-
         location ~ \.php$ {
                 fastcgi_pass   127.0.0.1:9000;
                 fastcgi_index  index.php;
-                fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
-                include        fastcgi_params;
+                fastcgi_param  SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+                include        /etc/nginx/fastcgi_params;
        }
 }
-" > /etc/nginx/sites-available/vanilaTools.conf
+EOF
 
+echo "${NGINX_SITE}" > /etc/nginx/sites-available/vanilaTools
+
+ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/phpmyadmin /etc/nginx/sites-enabled/phpmyadmin
+ln -sf /etc/nginx/sites-available/vanilaTools /etc/nginx/sites-enabled/vanilaTools
 }
+
 installNginx
