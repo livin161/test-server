@@ -30,6 +30,14 @@ echo "Отлично, теперь пора установить node.js"
 
 sudo bash node_load.sh
 
+echo "Ставим бд mysql"
+
+sudo bash mysql_load.sh
+
+echo "Ставим phpmyadmin"
+
+sudo bash phpmyadmin.sh
+
 echo "Ставим pagekite"
 
 # Required (at least on Raspbian) to support key-ring import
