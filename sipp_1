@@ -1,7 +1,10 @@
 from datetime import datetime
 import json
+import random
+import
 
 _I = 0
+_LOG_FILE = f'log/serlalize-log-()
 
 
 class Article:
@@ -9,10 +12,11 @@ class Article:
     def __init__(self, title, body):
         self.title = title
         self.body = body
+        self.like = random.randint(10, 50)
 
 
 def main():
-    art = Article("title", "body")
+    art = Article("title" = (random.randint(10, 50)), "body")
     print(art)
     print(art.title)
     print(art.body)
@@ -23,6 +27,7 @@ def send_json_data(art: Article):
     fd = f'json/{_I}-{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}-data.json'
     with open(fd, "x") as f:
         json.dump(art, f, default=to_dict)
+        log("Данные записаны в файл")
 
 
 def to_dict(o: object):
@@ -30,6 +35,20 @@ def to_dict(o: object):
     res["class"] = o.__class__.__name__
     return res
 
+
+def log(s: str):
+    with open(_LOG_FILE, 'a') as f:
+        f.write(f'{datetime.now().isoformat() | [s] \n}')
+
+
+def set_shead():
+    s = shead.sheadduler(time.time, time.s)
+
+def do_work(s: shead.sheadduler):
+    global _I
+    _I = _I + 1
+    print(f'---{_F}---')
+    art = Article()
 
 if __name__ == '__main__':
     main()
