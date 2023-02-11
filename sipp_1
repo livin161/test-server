@@ -1,1 +1,35 @@
+from datetime import datetime
+import json
 
+_I = 0
+
+
+class Article:
+
+    def __init__(self, title, body):
+        self.title = title
+        self.body = body
+
+
+def main():
+    art = Article("title", "body")
+    print(art)
+    print(art.title)
+    print(art.body)
+    send_json_data(art)
+
+
+def send_json_data(art: Article):
+    fd = f'json/{_I}-{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}-data.json'
+    with open(fd, "x") as f:
+        json.dump(art, f, default=to_dict)
+
+
+def to_dict(o: object):
+    res = o.__dict__
+    res["class"] = o.__class__.__name__
+    return res
+
+
+if __name__ == '__main__':
+    main()
